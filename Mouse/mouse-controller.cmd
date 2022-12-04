@@ -1,0 +1,7 @@
+@ECHO OFF
+MODE 16,1
+CD %OneDriveCommercial%\Documents
+:STARTING
+MOUSE moveBy 1x1
+TIMEOUT /T 120 /NOBREAK
+GOTO :STARTING
