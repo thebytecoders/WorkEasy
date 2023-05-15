@@ -52,6 +52,7 @@ function generate_root_ca
 
     Write-Host "CA Root Certificate Generated At:`n---------------------------------`n    $root_ca_dir\certs\$root_ca_prefix.cert.pem`n"
     openssl x509 -noout -text -in "$root_ca_dir\certs\$root_ca_prefix.cert.pem"
+	
 }
 
 
@@ -264,7 +265,7 @@ function generate_verification_certificate($sn)
 ###############################################################################
 # Generates a certificate for a device, chained directly to the root.
 ###############################################################################
-function generate_device_certificate($sn)
+function generate_device_certificate($sn,$dcn)
 {
 	if([string]::IsNullOrEmpty($sn)) {
 		Write-Host "Usage: create_device_certificate <subjectName>"
@@ -275,7 +276,7 @@ function generate_device_certificate($sn)
     Remove-Item .\private\new-device.key.pem -Force -ErrorAction SilentlyContinue
     Remove-Item .\certs\new-device.key.pem -Force -ErrorAction SilentlyContinue
     Remove-Item .\certs\new-device-full-chain.cert.pem -Force -ErrorAction SilentlyContinue
-    generate_leaf_certificate $sn "new-device" $root_ca_dir $root_ca_password $openssl_root_config_file
+    generate_leaf_certificate $sn $dcn $root_ca_dir $root_ca_password $openssl_root_config_file
 }
 
 
@@ -331,7 +332,7 @@ if($args[0] -eq 'create_root_certificate') {
 } elseif($args[0] -eq 'create_verification_certificate') {
 	generate_verification_certificate $args[1]
 } elseif($args[0] -eq 'create_device_certificate') {
-	generate_device_certificate $args[1]
+	generate_device_certificate $args[1] $args[2]
 } elseif($args[0] -eq 'create_device_certificate_from_intermediate') {
 	generate_device_certificate_from_intermediate $args[1]
 } elseif($args[0] -eq 'create_edge_device_certificate') {
