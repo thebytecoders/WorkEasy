@@ -35,7 +35,7 @@ function generate_root_ca
 
     cd $home_dir
     Write-Host "Creating the Root CA Private Key`n-----------------------------------"
-    openssl $algorithm -aes256 -passout pass:$root_ca_password  -out "$root_ca_dir\private\$root_ca_prefix.key.pem" $key_bits_length
+    openssl $algorithm -out "$root_ca_dir\private\$root_ca_prefix.key.pem" $key_bits_length
 	if (!$?) {
 		Write-host "Error occurred"
 		Read-Host "Press any key to exit"
@@ -43,7 +43,7 @@ function generate_root_ca
 	}
 
     echo "Creating the Root CA Certificate`n-----------------------------------"
-    openssl req -new -x509 -config $openssl_root_config_file -passin pass:$root_ca_password -key "$root_ca_dir\private\$root_ca_prefix.key.pem" -subj (makeCNsubject $common_name) -days $days_till_expire -sha256 -extensions v3_ca -out "$root_ca_dir\certs\$root_ca_prefix.cert.pem"
+    openssl req -new -x509 -config $openssl_root_config_file -key "$root_ca_dir\private\$root_ca_prefix.key.pem" -subj (makeCNsubject $common_name) -days $days_till_expire -sha256 -extensions v3_ca -out "$root_ca_dir\certs\$root_ca_prefix.cert.pem"
     if (!$?) {
 		Write-host "Error occurred"
 		Read-Host "Press any key to exit"
@@ -53,6 +53,7 @@ function generate_root_ca
     Write-Host "CA Root Certificate Generated At:`n---------------------------------`n    $root_ca_dir\certs\$root_ca_prefix.cert.pem`n"
     openssl x509 -noout -text -in "$root_ca_dir\certs\$root_ca_prefix.cert.pem"
 	
+	openssl pkcs12 -in "$root_ca_dir\certs\$root_ca_prefix.cert.pem" -inkey "$root_ca_dir\private\$root_ca_prefix.key.pem" -password pass:1234 -export -out "$root_ca_dir\certs\$root_ca_prefix.cert.pfx"
 }
 
 
