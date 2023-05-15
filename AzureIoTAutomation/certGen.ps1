@@ -29,7 +29,7 @@ function makeCNsubject($cn)
 ###############################################################################
 # Generate Root CA Cert
 ###############################################################################
-function generate_root_ca
+function generate_root_ca($bf)
 {
     $common_name="Azure IoT Hub CA Cert Test Only"
 
@@ -52,8 +52,9 @@ function generate_root_ca
 
     Write-Host "CA Root Certificate Generated At:`n---------------------------------`n    $root_ca_dir\certs\$root_ca_prefix.cert.pem`n"
     openssl x509 -noout -text -in "$root_ca_dir\certs\$root_ca_prefix.cert.pem"
+    openssl pkcs12 -in "$root_ca_dir\certs\$root_ca_prefix.cert.pem" -inkey "$root_ca_dir\private\$root_ca_prefix.key.pem" -password pass:1234 -export -out "$root_ca_dir\certs\$bf-$root_ca_prefix.cert.pfx"
 	
-	openssl pkcs12 -in "$root_ca_dir\certs\$root_ca_prefix.cert.pem" -inkey "$root_ca_dir\private\$root_ca_prefix.key.pem" -password pass:1234 -export -out "$root_ca_dir\certs\$root_ca_prefix.cert.pfx"
+	
 }
 
 
@@ -241,10 +242,10 @@ function prepare_filesystem
 ###############################################################################
 # Generates a root and intermediate certificate for CA certs.
 ###############################################################################
-function initial_cert_generation
+function initial_cert_generation($bf)
 {
     prepare_filesystem
-    generate_root_ca
+    generate_root_ca($bf)
 }
 
 ###############################################################################
@@ -327,7 +328,7 @@ function generate_edge_device_certificate($sn)
 #Set-PSDebug -Trace 0
 
 if($args[0] -eq 'create_root_certificate') {
-	initial_cert_generation
+	initial_cert_generation $args[1]
 } elseif($args[0] -eq 'create_intermediate_certificate') {
 	generate_intermediate_ca
 } elseif($args[0] -eq 'create_verification_certificate') {
