@@ -272,10 +272,10 @@ function prepare_filesystem
 ###############################################################################
 # Generates a root and intermediate certificate for CA certs.
 ###############################################################################
-function initial_cert_generation
+function initial_cert_generation($bf)
 {
     prepare_filesystem
-    generate_root_ca
+    generate_root_ca $bf
     generate_intermediate_ca
 }
 
@@ -359,7 +359,7 @@ function generate_edge_device_certificate($sn)
 Set-PSDebug -Trace 0
 
 if($args[0] -eq 'create_root_and_intermediate') {
-	initial_cert_generation
+	initial_cert_generation $args[1]
 } elseif($args[0] -eq 'create_verification_certificate') {
 	generate_verification_certificate $args[1]
 } elseif($args[0] -eq 'create_device_certificate') {
