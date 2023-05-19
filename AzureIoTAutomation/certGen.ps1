@@ -36,7 +36,7 @@ function makeCNsubject($cn)
 }
 
 
-function generate_root_ca
+function generate_root_ca($bf)
 {
     $common_name="Azure IoT Hub CA Cert Test Only"
 
@@ -62,7 +62,7 @@ function generate_root_ca
     Write-Host "    $root_ca_dir\certs\$root_ca_prefix.cert.pem"
     Write-Host ""
     openssl x509 -noout -text -in "$root_ca_dir\certs\$root_ca_prefix.cert.pem"
-	openssl pkcs12 -in "$root_ca_dir\certs\$root_ca_prefix.cert.pem" -inkey "$root_ca_dir\private\$root_ca_prefix.key.pem" -password pass:1234 -export -out "$root_ca_dir\certs\$bf-$root_ca_prefix.cert.pfx"
+    openssl pkcs12 -in "$root_ca_dir\certs\$root_ca_prefix.cert.pem" -inkey "$root_ca_dir\private\$root_ca_prefix.key.pem" -password pass:1234 -export -out "$root_ca_dir\certs\$bf-$root_ca_prefix.cert.pfx"
 }
 
 
