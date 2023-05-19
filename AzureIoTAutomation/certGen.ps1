@@ -1,3 +1,12 @@
+###############################################################################
+# This script demonstrates creating X.509 certificates for an Azure IoT Hub
+# CA Cert deployment.
+#
+# These certs MUST NOT be used in production.  It is expected that production
+# certificates will be created using a company's proper secure signing process.
+# These certs are intended only to help demonstrate and prototype CA certs.
+###############################################################################
+
 #Set-PSDebug -Trace 3 # Set trace on
 #set -o errexit # Exit if command failed
 #set -o pipefail # Exit if pipe failed
@@ -26,23 +35,21 @@ function makeCNsubject($cn)
     return $result
 }
 
-###############################################################################
-# Generate Root CA Cert
-###############################################################################
-function generate_root_ca($bf)
+
+function generate_root_ca
 {
     $common_name="Azure IoT Hub CA Cert Test Only"
 
     cd $home_dir
-    Write-Host "Creating the Root CA Private Key`n-----------------------------------"
-    openssl $algorithm -out "$root_ca_dir\private\$root_ca_prefix.key.pem" $key_bits_length
+    Write-Host "Creating the Root CA Private Key"
+	openssl $algorithm -out "$root_ca_dir\private\$root_ca_prefix.key.pem" $key_bits_length
 	if (!$?) {
 		Write-host "Error occurred"
 		Read-Host "Press any key to exit"
 		exit
 	}
 
-    echo "Creating the Root CA Certificate`n-----------------------------------"
+    echo "Creating the Root CA Certificate"
     openssl req -new -x509 -config $openssl_root_config_file -key "$root_ca_dir\private\$root_ca_prefix.key.pem" -subj (makeCNsubject $common_name) -days $days_till_expire -sha256 -extensions v3_ca -out "$root_ca_dir\certs\$root_ca_prefix.cert.pem"
     if (!$?) {
 		Write-host "Error occurred"
@@ -50,12 +57,14 @@ function generate_root_ca($bf)
 		exit
 	}
 
-    Write-Host "CA Root Certificate Generated At:`n---------------------------------`n    $root_ca_dir\certs\$root_ca_prefix.cert.pem`n"
+    Write-Host "CA Root Certificate Generated At:"
+    Write-Host "---------------------------------"
+    Write-Host "    $root_ca_dir\certs\$root_ca_prefix.cert.pem"
+    Write-Host ""
     openssl x509 -noout -text -in "$root_ca_dir\certs\$root_ca_prefix.cert.pem"
-    openssl pkcs12 -in "$root_ca_dir\certs\$root_ca_prefix.cert.pem" -inkey "$root_ca_dir\private\$root_ca_prefix.key.pem" -password pass:1234 -export -out "$root_ca_dir\certs\$bf-$root_ca_prefix.cert.pfx"
-	
-	
+	openssl pkcs12 -in "$root_ca_dir\certs\$root_ca_prefix.cert.pem" -inkey "$root_ca_dir\private\$root_ca_prefix.key.pem" -password pass:1234 -export -out "$root_ca_dir\certs\$bf-$root_ca_prefix.cert.pfx"
 }
+
 
 
 ###############################################################################
@@ -64,33 +73,39 @@ function generate_root_ca($bf)
 function generate_intermediate_ca
 {
     $common_name="Azure IoT Hub Intermediate Cert Test Only"
-    Write-Host "Creating the Intermediate Device CA`n-----------------------------------"
+    Write-Host "Creating the Intermediate Device CA"
+    Write-Host "-----------------------------------"
     cd $home_dir
 
-    openssl $algorithm -aes256 -passout pass:$intermediate_ca_password -out "$intermediate_ca_dir\private\$intermediate_ca_prefix.key.pem" $key_bits_length
+    openssl $algorithm -out "$intermediate_ca_dir\private\$intermediate_ca_prefix.key.pem" $key_bits_length
     if (!$?) {
 		Write-host "Error occurred"
 		Read-Host "Press any key to exit"
 		exit
 	}
 
-    Write-Host "Creating the Intermediate Device CA CSR`n-----------------------------------"
-    openssl req -new -sha256 -passin pass:$intermediate_ca_password -config $openssl_intermediate_config_file -subj (makeCNsubject $common_name) -key "$intermediate_ca_dir\private\$intermediate_ca_prefix.key.pem" -out "$intermediate_ca_dir\csr\$intermediate_ca_prefix.csr.pem"
+    Write-Host "Creating the Intermediate Device CA CSR"
+    Write-Host "-----------------------------------"
+
+    openssl req -new -config $openssl_intermediate_config_file -subj (makeCNsubject $common_name) -key "$intermediate_ca_dir\private\$intermediate_ca_prefix.key.pem" -out "$intermediate_ca_dir\csr\$intermediate_ca_prefix.csr.pem"
     if (!$?) {
 		Write-host "Error occurred"
 		Read-Host "Press any key to exit"
 		exit
 	}
 
-    Write-Host "Signing the Intermediate Certificate with Root CA Cert`n-----------------------------------"
-    openssl ca -batch -config $openssl_root_config_file -passin pass:$root_ca_password -extensions v3_intermediate_ca -days $days_till_expire -notext -md sha256 -in "$intermediate_ca_dir\csr\$intermediate_ca_prefix.csr.pem" -out "$intermediate_ca_dir\certs\$intermediate_ca_prefix.cert.pem"
+    Write-Host "Signing the Intermediate Certificate with Root CA Cert"
+    Write-Host "-----------------------------------"
+
+    openssl ca -batch -config $openssl_root_config_file -extensions v3_intermediate_ca -days $days_till_expire -notext -md sha256 -in "$intermediate_ca_dir\csr\$intermediate_ca_prefix.csr.pem" -out "$intermediate_ca_dir\certs\$intermediate_ca_prefix.cert.pem"
     if (!$?) {
 		Write-host "Error occurred"
 		Read-Host "Press any key to exit"
 		exit
 	}
 
-    Write-Host "Verify signature of the Intermediate Device Certificate with Root CA`n-----------------------------------"
+    Write-Host "Verify signature of the Intermediate Device Certificate with Root CA"
+    Write-Host "-----------------------------------"
     openssl verify -CAfile "$root_ca_dir\certs\$root_ca_prefix.cert.pem" "$intermediate_ca_dir\certs\$intermediate_ca_prefix.cert.pem"
     if (!$?) {
 		Write-host "Error occurred"
@@ -98,7 +113,10 @@ function generate_intermediate_ca
 		exit
 	}
 
-    Write-Host "Intermediate CA Certificate Generated At:`n-----------------------------------`n    $intermediate_ca_dir\certs\$intermediate_ca_prefix.cert.pem`n"
+    Write-Host "Intermediate CA Certificate Generated At:"
+    Write-Host "-----------------------------------------"
+    Write-Host "    $intermediate_ca_dir\certs\$intermediate_ca_prefix.cert.pem"
+    Write-Host ""
     openssl x509 -noout -text -in "$intermediate_ca_dir\certs\$intermediate_ca_prefix.cert.pem"
     if (!$?) {
 		Write-host "Error occurred"
@@ -106,7 +124,8 @@ function generate_intermediate_ca
 		exit
 	}
 
-    Write-Host "Create Root + Intermediate CA Chain Certificate`n-----------------------------------"
+    Write-Host "Create Root + Intermediate CA Chain Certificate"
+    Write-Host "-----------------------------------"
     Get-Content "$intermediate_ca_dir\certs\$intermediate_ca_prefix.cert.pem","$root_ca_dir\certs\$root_ca_prefix.cert.pem" | Out-File -Encoding ascii "$intermediate_ca_dir\certs\$ca_chain_prefix.cert.pem"
     if (!$?) {
 		Write-host "Error occurred"
@@ -114,7 +133,9 @@ function generate_intermediate_ca
 		exit
 	}
 
-    Write-Host "Root + Intermediate CA Chain Certificate Generated At:`n-----------------------------------`n    $intermediate_ca_dir\certs\$ca_chain_prefix.cert.pem"
+    Write-Host "Root + Intermediate CA Chain Certificate Generated At:"
+    Write-Host "------------------------------------------------------"
+    Write-Host "    $intermediate_ca_dir\certs\$ca_chain_prefix.cert.pem"
 }
 
 ###############################################################################
@@ -132,7 +153,8 @@ function generate_device_certificate_common($cn, $dp, $cd, $cp, $ocf, $oce, $ctd
     $openssl_config_extension=$oce
     $cert_type_diagnostic=$ctd
 
-    Write-Host "Creating $cert_type_diagnostic Certificate`n----------------------------------------"
+    Write-Host "Creating $cert_type_diagnostic Certificate"
+    Write-Host "----------------------------------------"
     cd $home_dir
 
     openssl $algorithm -out "$certificate_dir\private\$device_prefix.key.pem" $key_bits_length
@@ -142,7 +164,8 @@ function generate_device_certificate_common($cn, $dp, $cd, $cp, $ocf, $oce, $ctd
 		exit
 	}
 
-    Write-Host "Create the $cert_type_diagnostic Certificate Request`n----------------------------------------"
+    Write-Host "Create the $cert_type_diagnostic Certificate Request"
+    Write-Host "----------------------------------------"
     openssl req -config $openssl_config_file -key "$certificate_dir\private\$device_prefix.key.pem" -subj (makeCNsubject $common_name) -new -sha256 -out "$certificate_dir\csr\$device_prefix.csr.pem"
     if (!$?) {
 		Write-host "Error occurred"
@@ -150,7 +173,7 @@ function generate_device_certificate_common($cn, $dp, $cd, $cp, $ocf, $oce, $ctd
 		exit
 	}
 
-    openssl ca -batch -config $openssl_config_file -passin pass:$ca_password -extensions $openssl_config_extension -days $days_till_expire -notext -md sha256 -in "$certificate_dir\csr\$device_prefix.csr.pem" -out "$certificate_dir\certs\$device_prefix.cert.pem"
+    openssl ca -batch -config $openssl_config_file -extensions $openssl_config_extension -days $days_till_expire -notext -md sha256 -in "$certificate_dir\csr\$device_prefix.csr.pem" -out "$certificate_dir\certs\$device_prefix.cert.pem"
     if (!$?) {
 		Write-host "Error occurred"
 		Read-Host "Press any key to exit"
@@ -158,7 +181,8 @@ function generate_device_certificate_common($cn, $dp, $cd, $cp, $ocf, $oce, $ctd
 	}
 
 
-    Write-Host "Verify signature of the $cert_type_diagnostic" " certificate with the signer`n-----------------------------------"
+    Write-Host "Verify signature of the $cert_type_diagnostic" " certificate with the signer"
+    Write-Host "-----------------------------------"
     openssl verify -CAfile "$certificate_dir\certs\$ca_chain_prefix.cert.pem" "$certificate_dir\certs\$device_prefix.cert.pem"
     if (!$?) {
 		Write-host "Error occurred"
@@ -166,21 +190,27 @@ function generate_device_certificate_common($cn, $dp, $cd, $cp, $ocf, $oce, $ctd
 		exit
 	}
 
-    Write-Host "$cert_type_diagnostic Certificate Generated At:`n----------------------------------------`n    $certificate_dir\certs\$device_prefix.cert.pem`n"
+    Write-Host "$cert_type_diagnostic Certificate Generated At:"
+    Write-Host "----------------------------------------"
+    Write-Host "    $certificate_dir\certs\$device_prefix.cert.pem"
+    Write-Host ""
     openssl x509 -noout -text -in "$certificate_dir\certs\$device_prefix.cert.pem"
     if (!$?) {
 		Write-host "Error occurred"
 		Read-Host "Press any key to exit"
 		exit
 	}
-    Write-Host "Create the $cert_type_diagnostic PFX Certificate`n----------------------------------------"
+    Write-Host "Create the $cert_type_diagnostic PFX Certificate"
+    Write-Host "----------------------------------------"
     openssl pkcs12 -in "$certificate_dir\certs\$device_prefix.cert.pem" -inkey "$certificate_dir\private\$device_prefix.key.pem" -password pass:$server_pfx_password -export -out "$certificate_dir\certs\$device_prefix.cert.pfx"
     if (!$?) {
 		Write-host "Error occurred"
 		Read-Host "Press any key to exit"
 		exit
 	}
-    Write-Host "$cert_type_diagnostic PFX Certificate Generated At:`n--------------------------------------------`n    $certificate_dir\certs\$device_prefix.cert.pfx"
+    Write-Host "$cert_type_diagnostic PFX Certificate Generated At:"
+    Write-Host "--------------------------------------------"
+    Write-Host "    $certificate_dir\certs\$device_prefix.cert.pfx"
     if (!$?) {
 		Write-host "Error occurred"
 		Read-Host "Press any key to exit"
@@ -242,10 +272,11 @@ function prepare_filesystem
 ###############################################################################
 # Generates a root and intermediate certificate for CA certs.
 ###############################################################################
-function initial_cert_generation($bf)
+function initial_cert_generation
 {
     prepare_filesystem
-    generate_root_ca($bf)
+    generate_root_ca
+    generate_intermediate_ca
 }
 
 ###############################################################################
@@ -325,12 +356,10 @@ function generate_edge_device_certificate($sn)
 }
 
 #Set-PSDebug -Off
-#Set-PSDebug -Trace 0
+Set-PSDebug -Trace 0
 
-if($args[0] -eq 'create_root_certificate') {
-	initial_cert_generation $args[1]
-} elseif($args[0] -eq 'create_intermediate_certificate') {
-	generate_intermediate_ca
+if($args[0] -eq 'create_root_and_intermediate') {
+	initial_cert_generation
 } elseif($args[0] -eq 'create_verification_certificate') {
 	generate_verification_certificate $args[1]
 } elseif($args[0] -eq 'create_device_certificate') {
